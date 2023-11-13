@@ -1,68 +1,82 @@
+const fs = require('fs');
+
 class ProductManager {
   constructor() {
-      this.products = [];
+    this.products = [];
+    this.filePath = 'productos.txt'; // Nombre del archivo donde se guardarán los productos
+    this.loadProducts(); // Cargar productos existentes al iniciar la instancia
   }
 
   generateUniqueId() {
-      // Genera un ID único basado en la marca de tiempo (timestamp)
-      return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
   }
 
   getProducts() {
-      return this.products;
+    return this.products;
   }
 
   addProduct(productData) {
-      // Verifica si el código ya existe en algún producto
-      if (this.products.some((product) => product.code === productData.code)) {
-          throw new Error('El código de producto ya está en uso.');
-      }
+    if (this.products.some((product) => product.code === productData.code)) {
+      throw new Error('El código de producto ya está en uso.');
+    }
 
-      // Genera un ID único para el producto
-      productData.id = this.generateUniqueId();
-
-      // Agrega el producto al arreglo de productos
-      this.products.push(productData);
+    productData.id = this.generateUniqueId();
+    this.products.push(productData);
+    this.saveProducts(); // Guardar productos después de agregar uno nuevo
   }
 
   getProductById(id) {
-      const product = this.products.find((product) => product.id === id);
+    const product = this.products.find((product) => product.id === id);
 
-      if (!product) {
-          throw new Error('Producto no encontrado.');
-      }
+    if (!product) {
+      throw new Error('Producto no encontrado.');
+    }
 
-      return product;
+    return product;
   }
 
   updateProduct(id, updatedFields) {
-      const productIndex = this.products.findIndex((product) => product.id === id);
+    const productIndex = this.products.findIndex((product) => product.id === id);
 
-      if (productIndex === -1) {
-          throw new Error('Producto no encontrado.');
-      }
+    if (productIndex === -1) {
+      throw new Error('Producto no encontrado.');
+    }
 
-      // Actualiza los campos del producto sin cambiar el ID
-      this.products[productIndex] = { ...this.products[productIndex], ...updatedFields };
+    this.products[productIndex] = { ...this.products[productIndex], ...updatedFields };
+    this.saveProducts(); // Guardar productos después de actualizar uno existente
   }
 
   deleteProduct(id) {
-      const productIndex = this.products.findIndex((product) => product.id === id);
+    const productIndex = this.products.findIndex((product) => product.id === id);
 
-      if (productIndex === -1) {
-          throw new Error('Producto no encontrado.');
-      }
+    if (productIndex === -1) {
+      throw new Error('Producto no encontrado.');
+    }
 
-      // Elimina el producto del arreglo
-      this.products.splice(productIndex, 1);
+    this.products.splice(productIndex, 1);
+    this.saveProducts(); // Guardar productos después de eliminar uno existente
+  }
+
+  loadProducts() {
+    try {
+      const data = fs.readFileSync(this.filePath, 'utf8');
+      const lines = data.split('\n');
+      this.products = lines
+        .filter((line) => line.trim() !== '')
+        .map((line) => JSON.parse(line));
+    } catch (error) {
+      // Si hay un error al leer el archivo (puede ser porque no existe), no hacer nada.
+      // Puedes agregar más manejo de errores según tus necesidades.
+    }
+  }
+
+  saveProducts() {
+    const data = this.products.map((product) => JSON.stringify(product)).join('\n');
+    fs.writeFileSync(this.filePath, data, 'utf8');
   }
 }
 
-// Crear una instancia de ProductManager
 const manager = new ProductManager();
-
-// Llamar a getProducts, debe devolver un arreglo vacío
-console.log('Productos iniciales:', manager.getProducts());
 
 // Agregar un producto
 const nuevoProducto = {
@@ -95,9 +109,9 @@ try {
 // Actualizar un producto
 try {
   const updatedFields = {
-      title: 'Producto actualizado',
-      description: 'Este es un producto actualizado',
-      price: 250,
+    title: 'Producto actualizado',
+    description: 'Este es un producto actualizado',
+    price: 250,
   };
   manager.updateProduct(nuevoProducto.id, updatedFields);
   console.log('Producto actualizado con éxito.');
